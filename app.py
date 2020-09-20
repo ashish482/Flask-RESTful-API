@@ -12,11 +12,11 @@ db = SQLAlchemy(app)
 
 @app.route("/token")
 def generate_token():           #generating tokens for authentication
-    token = jwt.encode({'exp': datetime.datetime.utcnow() + datetime.timedelta(seconds=180)}, app.config['SECRET_KEY'])
+    token = jwt.encode({'exp': datetime.datetime.utcnow() + datetime.timedelta(seconds=3600)}, app.config['SECRET_KEY'])
     return jsonify({'token':token.decode('utf-8')})
 
 
-def check_for_token(func):   #building a generator for checking token, provided before calling an API
+def check_for_token(func):   #Building a generator for checking token, provided before calling an API
     @wraps(func)
     def wrapped(*args, **kwargs):
         token = None
@@ -33,7 +33,7 @@ def check_for_token(func):   #building a generator for checking token, provided 
     return wrapped
 
 
-@app.route("/user", methods=["GET", "POST"])   #Retrieving all users and Adding a new user using form data in Postman
+@app.route("/user", methods=["GET", "POST"])   #Getting all users and adding a new user using form data in Postman
 @check_for_token
 def add_user():
 
@@ -69,6 +69,12 @@ def single_user(id):
         db.session.delete(merge)
         db.session.commit()
         return jsonify('Deleted User !')
+
+@app.route("/user/term=<search_term>", methods=["GET"])
+@check_for_token
+def get(search_term):
+    #results = User.query.filter(User.username.like('%'+search_term+'%')).all()
+    return jsonify({'users': list(map(lambda filter: filter.serialize(), User.query.filter(User.username.like('%'+search_term+'%')).all()))})
 
 
 if __name__ == "__main__":
