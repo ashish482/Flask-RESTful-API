@@ -13,13 +13,13 @@ from flask import url_for
 from authlib.integrations.flask_client import OAuth
 from six.moves.urllib.parse import urlencode
 
-#
+
 from flask import request
 from db import User
 from flask_sqlalchemy import SQLAlchemy
 import jwt
 import datetime
-#
+
 import constants
 
 ENV_FILE = find_dotenv()
@@ -49,7 +49,7 @@ oauth = OAuth(app)
 
 auth0 = oauth.register(
     'auth0',
-    client_id=AUTH0_CLIENT_ID,
+    client_id=AUTH0_CLIENT_ID,                      #####Auth0 configuration
     client_secret=AUTH0_CLIENT_SECRET,
     api_base_url=AUTH0_BASE_URL,
     access_token_url=AUTH0_BASE_URL + '/oauth/token',
@@ -63,7 +63,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.sqlite'
 db = SQLAlchemy(app)
 
 
-def requires_auth(f):
+def requires_auth(f):                           #Building a generator for checking Auth0 token, provided before calling an API
     @wraps(f)
     def decorated(*args, **kwargs):
         if constants.PROFILE_KEY not in session:
@@ -76,7 +76,7 @@ def requires_auth(f):
 # Controllers API
 @app.route('/')
 def home():
-    return render_template('home.html')
+    return render_template('home.html')              #rendering home page
 
 
 @app.route('/callback')
@@ -91,22 +91,22 @@ def callback_handling():
         'name': userinfo['name'],
         'picture': userinfo['picture']
     }
-    return redirect('/user')
+    return redirect('/user')                                   #redirecting to Api
 
 
-@app.route('/login')
+@app.route('/login')       #login function
 def login():
     return auth0.authorize_redirect(redirect_uri=AUTH0_CALLBACK_URL, audience=AUTH0_AUDIENCE)
 
 
-@app.route('/logout')
+@app.route('/logout')       #logging out
 def logout():
     session.clear()
     params = {'returnTo': url_for('home', _external=True), 'client_id': AUTH0_CLIENT_ID}
     return redirect(auth0.api_base_url + '/v2/logout?' + urlencode(params))
 
 
-@app.route('/dashboard')
+@app.route('/dashboard')    #rendering dashboard page for user
 @requires_auth
 def dashboard():
     return render_template('dashboard.html',
@@ -114,7 +114,7 @@ def dashboard():
                            userinfo_pretty=json.dumps(session[constants.JWT_PAYLOAD], indent=4))
 
 
-@app.route("/user", methods=["GET", "POST"])
+@app.route("/user", methods=["GET", "POST"])        #Getting all users and adding a new user using form data
 @requires_auth
 def add_user():
 
@@ -151,10 +151,9 @@ def single_user(id):
         db.session.commit()
         return jsonify('Deleted User !')
 
-@app.route("/user/term=<search_term>", methods=["GET"])
+@app.route("/user/term=<search_term>", methods=["GET"])         #Searching for a user containing particular characters.
 @requires_auth
 def get(search_term):
-    #results = User.query.filter(User.username.like('%'+search_term+'%')).all()
     return jsonify({'users': list(map(lambda filter: filter.serialize(), User.query.filter(User.username.like('%'+search_term+'%')).all()))})
 
 
